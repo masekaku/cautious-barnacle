@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Collections with Filter</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* CSS untuk mencegah copy dan zoom */
+        body {
+            -webkit-user-select: none;  /* Safari */
+            -moz-user-select: none;     /* Firefox */
+            -ms-user-select: none;      /* IE10+ */
+            user-select: none;          /* Standard */
+            touch-action: manipulation; /* Mencegah zoom di touch devices */
+            -ms-touch-action: manipulation; /* IE */
+        }
+        meta[name="viewport"] {
+            user-scalable=no; /* Mencegah zoom pada meta viewport */
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+            overflow-x: hidden;
+            position: relative;
+            padding-bottom: 60px; /* Memberi ruang untuk Histats di bawah */
+        }
+        .container {
+            max-width: 100%;
+            margin: 0 auto;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: fadeInSlideUp 0.8s ease-out forwards;
+        }
+        h1 {
+            text-align: center;
+            font-size: 1.8em;
+            color: #00d4ff;
+            margin-bottom: 20px;
+        }
+        h2 {
+            font-size: 1.4em;
+            color: rgba(255, 140, 0, 0.7);
+            margin: 20px 0 10px;
+            border-bottom: 2px solid #ff4081;
+            padding-bottom: 5px;
+            transition: text-shadow 0.3s ease;
+        }
+        h2:hover {
+            text-shadow: 0 0 10px #ff4081, 0 0 20px #ff4081;
+        }
+        .url-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .url-item {
+            background-color: #2c2c2c;
+            padding: 10px;
+            border-radius: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+            overflow: hidden; /* Penting agar efek air tidak keluar dari item */
+            cursor: pointer;
+        }
+        .url-item a {
+            color: #00d4ff;
+            text-decoration: none;
+            font-size: 1em;
+            word-break: break-all;
+            display: block;
+            position: relative; /* Penting: agar link tetap di atas ripple */
+            z-index: 2; /* Penting: agar link tetap di atas ripple */
+        }
+        .url-item a:hover {
+            text-decoration: underline;
+        }
+        .url-item:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 8px rgba(0, 212, 255, 0.3);
+        }
+        .filter-container {
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .filter-container select {
+            padding: 10px;
+            font-size: 1em;
+            border-radius: 5px;
+            background-color: #2c2c2c;
+            color: #ffffff;
+            border: 1px solid #00d4ff;
+            width: 100%;
+            max-width: 300px;
+            appearance: none;
+            background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http://www.w3.org/2000/svg%22%20viewBox%3D%220%200%20256%20256%22%3E%3Cpath%20fill%3D%22%2300d4ff%22%20d%3D%22M208.5%2090.9l-80.5%2080.4L47.5%2090.9%2073%2065.5l55%2055%2055-55z%22/%3E%3C/svg%3E');
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 12px;
+        }
+        .category {
+            display: none;
+        }
+        .category.active {
+            display: block;
+        }
+        /* Ripple effect styles - Disesuaikan untuk efek air muncul dari bawah */
+        .ripple {
+            position: absolute;
+            border-radius: 50%;
+            background-color: rgba(255, 140, 0, 0.7); /* Menggunakan ORANYE cerah */
+            transform: scale(0);
+            pointer-events: none;
+            z-index: 1;
+            animation: waterEffect 0.6s ease-out forwards; /* Menggunakan animasi baru */
+        }
+
+        @keyframes waterEffect {
+            0% {
+                transform: scale(0);
+                opacity: 0.7;
+                bottom: 0; /* Mulai dari bawah */
+                left: 50%; /* Tengah secara horizontal */
+                transform: translateX(-50%) scale(0);
+            }
+            100% {
+                transform: scale(2); /* Ukuran akhir */
+                opacity: 0;
+                bottom: 100%; /* Bergerak ke atas */
+                left: 50%; /* Tetap di tengah horizontal */
+                transform: translateX(-50%) scale(2);
+            }
+        }
+
+        @keyframes fadeInSlideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Histats Counter Styles */
+        #histats_container {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            background-color: #2c2c2c;
+            padding: 10px 0;
+            text-align: center;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            min-height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-top: 1px solid #00d4ff;
+            color: #ffffff;
+        }
+
+        /* Style untuk gambar Histats di dalam no-script */
+        #histats_container noscript img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+
+        /* Skeleton Screen Styles */
+        .url-list.loading .url-item,
+        .url-list.loading .skeleton-item {
+            display: block;
+        }
+        .url-list:not(.loading) .skeleton-item {
+            display: none;
+        }
+        .url-list.loading .url-item {
+            opacity: 0;
+            pointer-events: none;
+        }
+        .skeleton-item {
+            background-color: #3a3a3a;
+            height: 30px;
+            border-radius: 8px;
+            animation: pulse 1.5s infinite ease-in-out;
+        }
+
+        @keyframes pulse {
+            0% { opacity: 0.7; }
+            50% { opacity: 0.4; }
+            100% { opacity: 0.7; }
+        }
+
+        /* Adjustments for smaller screens */
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 1.5em;
+            }
+            h2 {
+                font-size: 1.2em;
+            }
+            .url-item {
+                padding: 8px;
+            }
+            .url-item a {
+                font-size: 0.9em;
+            }
+            .filter-container select {
+                font-size: 0.9em;
+            }
+            body {
+                padding-bottom: 50px;
+            }
+            #histats_container {
+                padding: 8px 0;
+                min-height: 35px;
+            }
+            .skeleton-item {
+                height: 25px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>SELIN X VIDEY</h1>
+        <div class="filter-container">
+            <select id="categoryFilter" onchange="filterCategory()">
+                <option value="all">All Categories</option>
+                <option value="PENUH-PERBINCANGAN">VIDEY RANDOM</option>
+            </select>
+        </div>
+
+        <div class="category active" data-category="VIDEY-RANDOM">
+            <h2>VIDEY RANDOM</h2>
+            <div class="url-list" id="urlListVideRandom">
+                <div class="skeleton-item"></div>
+                <div class="skeleton-item"></div>
+                <div class="skeleton-item"></div>
+                <div class="skeleton-item"></div>
+                <div class="skeleton-item"></div>
+                <div class="skeleton-item"></div>
+                <div class="skeleton-item"></div>
+                <div class="skeleton-item"></div>
+                <div class="skeleton-item"></div>
+                <div class="skeleton-item"></div>
+<div class="url-item"><a href="https://clarisa.web.id/redirect.html?url=U2FsdGVkX1%2B0y8dLPnzJIYC3leAmOoWEIWU%2BTmhA8agjhM9pyQcZGIi6feU3kl9D" target="_blank">https://videy.co/v?id=w8y3r51</a></div>
+<div class="url-item"><a href="https://clarisa.web.id/redirect.html?url=U2FsdGVkX1%2FQgyHEJZ2Divv5LthatjMZOEVm%2BZLTH9GFrJg7zgsG5CSXHcGwrufp" target="_blank">https://videy.co/v?id=p2q4s61</a></div>
+<div class="url-item"><a href="https://clarisa.web.id/redirect.html?url=U2FsdGVkX1%2FxCHzuHSN2aRWEV5mYqmpJLymMlSiaL7Aojg1R%2BfmmixQlgwzBIn%2Bz" target="_blank">https://videy.co/v?id=m7n9k11</a></div>
+<div class="url-item"><a href="https://clarisa.web.id/redirect.html?url=U2FsdGVkX18z4FYhpg14Kr2R9MxCHDOeBRR1VxgQyhyT3wdBV7jqhJ2dMZpOj%2Bbk" target="_blank">https://videy.co/v?id=j0l5g31</a></div>
+<div class="url-item"><a href="https://clarisa.web.id/redirect.html?url=U2FsdGVkX19bKm89RsSxtFxJBvn1LDtR9uvbrCpE7Hfe2GqQRV3dadgQ56W87%2BqO" target="_blank">https://videy.co/v?id=c6d8e01</a></div>
+<div class="url-item"><a href="https://clarisa.web.id/redirect.html?url=U2FsdGVkX1%2BVY7tDMFEtcC1582KY1fRndhH89HlHaSX3m4DUiMT1WxBoSpOTjH4R" target="_blank">https://videy.co/v?id=u1v3w71</a></div>
+<div class="url-item"><a href="https://clarisa.web.id/redirect.html?url=U2FsdGVkX19%2F1MUXc0wLSJZHsWnMNjC4jIhtqZw8emiZre4Gc9h2QZC31%2FJxsxMm" target="_blank">https://videy.co/v?id=z9y1x51</a></div>
+<div class="url-item"><a href="https://clarisa.web.id/redirect.html?url=U2FsdGVkX1%2BOp2t4%2BQPHiSBx991HbtqCJEZCEXGw7hnRGdvmb3erPiAB5fhusEFeBm3QQ2CTZysFWjZdKBnZKA%3D%3D" target="_blank">https://videy.co/v?id=t2r4e61</a></div>
+<div class="url-item"><a href="https://clarisa.web.id/redirect.html?url=U2FsdGVkX18acXzVoNzpdg5QJUQ1T2bjRm3URW07nZMd3wXbsDQpc%2Fha4GWlS2xdawBkwM2u9dhv7ONRnPLBjg%3D%3D" target="_blank">https://videy.co/v?id=k5j8h01</a></div>
+<div class="url-item"><a href="https://clarisa.web.id/redirect.html?url=U2FsdGVkX1%2FrglXFsdj5j9Uo8XbgTiPXsW3y%2BVpQHdoKOlr8gt9xV%2BKKDU%2Fc%2B6JbitGE6QP5DJ%2Fzg%2BlhkGU4MA%3D%3D" target="_blank">https://videy.co/v?id=f1g3i71</a></div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Fungsi untuk mengaktifkan dan menonaktifkan skeleton screen
+        function toggleLoading(isLoading) {
+            const urlList = document.getElementById('urlListPenuhPerbincangan');
+            if (isLoading) {
+                urlList.classList.add('loading');
+            } else {
+                urlList.classList.remove('loading');
+            }
+        }
+
+        // Tampilkan skeleton saat halaman pertama kali dimuat
+        document.addEventListener('DOMContentLoaded', () => {
+            toggleLoading(true); // Aktifkan skeleton
+            setTimeout(() => {
+                toggleLoading(false); // Nonaktifkan skeleton setelah 1.5 detik (simulasi loading)
+            }, 1500); // Durasi loading dalam milidetik (1.5 detik)
+
+            // Inisialisasi ripple effect setelah loading selesai
+            // Ini untuk memastikan event listener hanya dipasang pada item yang terlihat
+            setTimeout(() => {
+                document.querySelectorAll('.url-item').forEach(item => {
+                    item.addEventListener('click', function(e) {
+                        // Mencegah navigasi langsung untuk memungkinkan animasi terlihat
+                        e.preventDefault();
+                        const targetUrl = this.querySelector('a').href; // Ambil URL dari tag <a> di dalamnya
+
+                        const ripple = document.createElement('span');
+                        ripple.classList.add('ripple');
+
+                        // Ukuran ripple disesuaikan dengan dimensi item
+                        const rect = item.getBoundingClientRect();
+                        const size = Math.max(rect.width, rect.height) * 2; // Ukuran lebih besar agar menyebar keluar
+                        
+                        ripple.style.width = `${size}px`;
+                        ripple.style.height = `${size}px`;
+                        // Posisi ripple: selalu di tengah bawah item
+                        ripple.style.left = `50%`;
+                        ripple.style.bottom = `0`;
+                        ripple.style.transform = `translateX(-50%) scale(0)`; // Mulai dari tengah bawah, skala 0
+
+                        this.appendChild(ripple);
+
+                        // Setelah animasi selesai, baru navigasi ke URL
+                        ripple.addEventListener('animationend', () => {
+                            ripple.remove();
+                            // Baru navigasi setelah animasi selesai
+                            window.open(targetUrl, '_blank');
+                        });
+                    });
+                });
+            }, 1500); // Sesuaikan dengan durasi loading skeleton
+        });
+
+
+        function filterCategory() {
+            const select = document.getElementById('categoryFilter');
+            const selectedCategory = select.value;
+            const categories = document.querySelectorAll('.category');
+
+            categories.forEach(category => {
+                if (selectedCategory === 'all' || category.getAttribute('data-category') === selectedCategory) {
+                    category.classList.add('active');
+                } else {
+                    category.classList.remove('active');
+                }
+            });
+            // Opsional: Jika Anda memiliki banyak kategori dan ingin skeleton saat filter, Anda bisa tambahkan:
+            // toggleLoading(true);
+            // setTimeout(() => { toggleLoading(false); }, 500); // Durasi lebih pendek
+        }
+
+
+        // Script untuk mencegah copy
+        document.addEventListener('contextmenu', event => event.preventDefault());
+        document.addEventListener('copy', event => {
+            event.preventDefault();
+            alert('Fungsi copy tidak diizinkan di situs ini!');
+        });
+        document.addEventListener('cut', event => {
+            event.preventDefault();
+            alert('Fungsi cut tidak diizinkan di situs ini!');
+        });
+        document.addEventListener('selectstart', event => {
+            event.preventDefault();
+        });
+    </script>
+
+    <script type="text/javascript">
+        var _Hasync= _Hasync|| [];
+        _Hasync.push(['Histats.start', '1,4956075,4,128,112,33,00010000']);
+        _Hasync.push(['Histats.fasi', '1']);
+        _Hasync.push(['Histats.track_hits', '']);
+        _Hasync.push(['Histats.framed_page', '']);
+        (function() {
+            var hs = document.createElement('script'); hs.type = 'text/javascript'; hs.async = true;
+            hs.src = ('//s10.histats.com/js15_as.js');
+            (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(hs);
+        })();
+    </script>
+    <noscript><a href="/" target="_blank"><img src="//sstatic1.histats.com/0.gif?4956075&101" alt="" border="0"></a></noscript>
+    </body>
+</html>
